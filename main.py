@@ -5,10 +5,11 @@ from torch_geometric.loader import DataLoader
 from models.model import ASGFormer
 from data.dataset import PointCloudProcessor, H5Dataset, read_file_list
 from train import train_model
+from configs.env_config import CONFIG
 
 def main():
     # پیکربندی داده و مدل
-    hyperparams = {
+    hyperparams2 = {
         'learning_rate': 1e-4,
         'batch_size': 2,
         'num_epochs': 45,
@@ -18,6 +19,21 @@ def main():
         'device': 'cuda' if torch.cuda.is_available() else 'cpu',
         'num_points': 4096
     }
+    
+    # استفاده از تنظیمات خودکار
+    hyperparams = {
+        'device': CONFIG['device'],
+        'learning_rate': CONFIG['learning_rate'],
+        'batch_size': CONFIG['batch_size'],
+        'num_epochs': CONFIG['num_epochs'],
+        'dataset_path': CONFIG['dataset_path'],
+        'knn_param': CONFIG['knn_param'],
+        'num_points': CONFIG['num_points'],
+        'dropout_param': CONFIG['dropout_param'],
+        'weight_decay': CONFIG['weight_decay'],
+        'checkpoint_dir': CONFIG['checkpoint_dir']
+    }
+
     stages_config = [
         {'hidden_dim': 32, 'num_layers': 1, 'downsample_ratio': 1.0},
         {'hidden_dim': 64, 'num_layers': 2, 'downsample_ratio': 0.25},
@@ -26,7 +42,7 @@ def main():
         {'hidden_dim': 512, 'num_layers': 2, 'downsample_ratio': 0.25},
     ]
 
-    dataset_path = "./data/s3dis-small"
+    dataset_path = hyperparams['dataset_path']
     print("dataset_path=> ",dataset_path)
     
     train_files = read_file_list(f"{dataset_path}/list/train5.txt")
