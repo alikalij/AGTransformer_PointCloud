@@ -1,0 +1,19 @@
+# استفاده از PyPI پیش‌فرض برای numpy، scikit-learn، h5py
+numpy
+scikit-learn
+h5py
+
+# افزودن شاخص CPU برای PyTorch و وابستگی‌های آن
+--index-url https://download.pytorch.org/whl/cpu
+torch==2.7.0+cpu
+torchvision==0.22.0+cpu
+torchaudio==2.7.0
+
+# افزودن لینک wheelهای PyG برای PyTorch 2.7.0 CPU
+--find-links https://data.pyg.org/whl/torch-2.7.0+cpu.html
+pyg_lib
+torch-scatter
+torch-sparse
+torch-cluster
+torch-spline-conv
+torch-geometric
