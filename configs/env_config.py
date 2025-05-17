@@ -7,6 +7,8 @@ import torch
 IS_COLAB = 'google.colab' in sys.modules
 IS_LOCAL = not IS_COLAB
 
+print("IS_COLAB =>", IS_COLAB)
+
 # تنظیمات پایه
 BASE_CONFIG = {
     # پارامترهای مشترک
