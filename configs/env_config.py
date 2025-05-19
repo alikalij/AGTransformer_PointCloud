@@ -33,7 +33,7 @@ ENV_SPECIFIC = {
     },
     'local': {
         'dataset_path': str(Path(__file__).parent.parent / 'data/s3dis-mini'),
-        'checkpoint_dir': str(Path(__file__).parent.parent / 'checkpoints'),
+        'checkpoint_dir': str(Path(__file__).parent.parent / 'saved_models'),
         'requirements': False
     }
 }
