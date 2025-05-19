@@ -70,6 +70,6 @@ def train_model(model, dataloader_train, dataloader_val, criterion, optimizer, s
             scheduler.step(val_loss)
         print(f"Epoch {epoch + 1}/{hyperparams['num_epochs']}: Val Loss = {val_loss:.4f}")
 
-        save_checkpoint(model, optimizer, epoch + 1, train_losses, val_losses)
+        save_checkpoint(model, optimizer, epoch + 1, train_losses, val_losses,hyperparams['checkpoint_dir'])
 
     return train_losses, val_losses

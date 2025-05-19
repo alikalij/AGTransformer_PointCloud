@@ -44,7 +44,8 @@ def main():
 
     dataset_path = hyperparams['dataset_path']
     print("dataset_path=> ",dataset_path)
-    
+    print("checkpoint_dir=> ",hyperparams['checkpoint_dir'])
+
     train_files = read_file_list(f"{dataset_path}/list/train5.txt")
     val_files = read_file_list(f"{dataset_path}/list/val5.txt")
 
