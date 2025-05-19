@@ -6,7 +6,7 @@ def train_model(model, dataloader_train, dataloader_val, criterion, optimizer, s
     حلقه آموزش مدل.
     """
     model, optimizer, start_epoch, train_losses, val_losses = load_checkpoint_dynamic(
-        model, optimizer, for_training=True
+        model, optimizer, for_training=True, directory=hyperparams['checkpoint_dir']
     )
     print(f"شروع آموزش از epoch {start_epoch + 1}")
     device = torch.device(hyperparams['device'])
