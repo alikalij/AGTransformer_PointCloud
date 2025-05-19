@@ -27,7 +27,7 @@ BASE_CONFIG = {
 # تنظیمات خاص محیط
 ENV_SPECIFIC = {
     'colab': {
-        'dataset_path': '/content/drive/MyDrive/datasets/s3dis/s3dis-small',
+        'dataset_path': '/content/dataset',
         'checkpoint_dir': '/content/drive/MyDrive/saved_models',
         'requirements': True
     },
