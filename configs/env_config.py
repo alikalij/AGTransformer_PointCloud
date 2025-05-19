@@ -4,7 +4,8 @@ from pathlib import Path
 import torch
 
 # تشخیص خودکار محیط اجرا
-IS_COLAB = 'google.colab' in sys.modules
+#IS_COLAB = 'google.colab' in sys.modules
+IS_COLAB = os.getenv('COLAB_ENV') == '1'
 IS_LOCAL = not IS_COLAB
 
 print("IS_COLAB =>", IS_COLAB)
