@@ -28,12 +28,12 @@ BASE_CONFIG = {
 ENV_SPECIFIC = {
     'colab': {
         'dataset_path': '/content/dataset/s3dis-mini',
-        'checkpoint_dir': '/content/drive/MyDrive/saved_models',
+        'checkpoint_dir': '/content/drive/MyDrive/saved_models/',
         'requirements': True
     },
     'local': {
         'dataset_path': str(Path(__file__).parent.parent / 'data/s3dis-mini'),
-        'checkpoint_dir': str(Path(__file__).parent.parent / 'saved_models'),
+        'checkpoint_dir': str(Path(__file__).parent.parent / 'saved_models/'),
         'requirements': False
     }
 }

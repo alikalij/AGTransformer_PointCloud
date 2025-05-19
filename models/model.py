@@ -5,6 +5,7 @@ import math
 from torch_geometric.nn import knn, knn_graph
 import torch_geometric.nn as pyg_nn
 
+
 class VirtualNode(nn.Module):
     # یک گره مجازی برای انتقال اطلاعات جهانی میان همه گره‌ها
     def __init__(self, hidden_dim):
@@ -19,17 +20,6 @@ class VirtualNode(nn.Module):
         global_context = self.norm(global_context)
         return x + self.distribute(global_context)
 
-
-class VirtualNode2(nn.Module):
-    def __init__(self, hidden_dim):
-        super(VirtualNode2, self).__init__()
-        self.aggregate = nn.Linear(hidden_dim, hidden_dim)
-        self.distribute = nn.Linear(hidden_dim, hidden_dim)
-
-    def forward(self, x):
-        global_context = x.mean(dim=0, keepdim=True)
-        global_context = self.aggregate(global_context)
-        return x + self.distribute(global_context)
 
 
 class GraphAttentionLayer(nn.Module):
@@ -78,48 +68,6 @@ class GraphAttentionLayer(nn.Module):
         return updated_features, attention_weights
 
 
-class GraphAttentionLayer2(nn.Module):
-    def __init__(self, hidden_dim, dropout_param=0.1):
-        super(GraphAttentionLayer2, self).__init__()
-        self.query = nn.Linear(hidden_dim, hidden_dim)
-        self.key = nn.Linear(hidden_dim, hidden_dim)
-        self.value = nn.Linear(hidden_dim, hidden_dim)
-        self.position_embedding = nn.Linear(3, hidden_dim)
-        self.norm_q = nn.LayerNorm(hidden_dim)
-        self.norm_k = nn.LayerNorm(hidden_dim)
-        self.norm_v = nn.LayerNorm(hidden_dim)
-        self.dropout = nn.Dropout(p=dropout_param)
-        self.hidden_dim = hidden_dim
-
-    def forward(self, x, edge_index, pos):
-        if edge_index.shape[1] == 0:
-            raise ValueError("edge_index is empty!")
-        if x.shape[-1] != self.hidden_dim:
-            raise ValueError(f"Input feature dim {x.shape[-1]} doesn't match hidden_dim {self.hidden_dim}")
-
-        pos_emb = self.position_embedding(pos)
-        pos_emb = F.normalize(pos_emb, p=2, dim=-1)
-
-        Q = self.norm_q(self.query(x))
-        K = self.norm_k(self.key(x))
-        V = self.norm_v(self.value(x))
-
-        scale = math.sqrt(self.hidden_dim)
-        attention_scores = (Q @ K.T) / scale
-        pos_sim = pos_emb @ pos_emb.T
-        attention_scores = attention_scores + pos_sim
-
-        mask = torch.zeros_like(attention_scores)
-        rows, cols = edge_index
-        mask[rows, cols] = 1
-
-        attention_scores = attention_scores.masked_fill(mask == 0, -1e4)
-        attention_weights = F.softmax(attention_scores, dim=-1)
-        attention_weights = self.dropout(attention_weights)
-
-        updated_features = attention_weights @ V
-        return updated_features, attention_weights
-
 
 class AGTBlock(nn.Module):
     def __init__(self, input_dim, output_dim, dropout_param=0.1):
@@ -144,26 +92,6 @@ class AGTBlock(nn.Module):
         output = self.norm(h + residual)
         return output, attention_weights
 
-
-class AGTBlock2(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout_param=0.1):
-        super(AGTBlock2, self).__init__()
-        self.mlp = nn.Sequential(
-            nn.Linear(input_dim, output_dim),
-            nn.ReLU(),
-            nn.Dropout(p=dropout_param),
-            nn.Linear(output_dim, output_dim)
-        )
-        self.graph_attention = GraphAttentionLayer(output_dim, dropout_param)
-        self.residual = nn.Identity() if input_dim == output_dim else nn.Linear(input_dim, output_dim)
-        self.norm = nn.LayerNorm(output_dim)
-
-    def forward(self, x, edge_index, pos):
-        h = self.mlp(x)
-        h, attention_weights = self.graph_attention(h, edge_index, pos)
-        residual_out = self.residual(x)
-        output = self.norm(h + residual_out)
-        return output, attention_weights
 
 
 class Stage(nn.Module):
@@ -211,22 +139,6 @@ class Stage(nn.Module):
     def extra_repr(self):
         return f"input_dim={self.input_dim}, hidden_dim={self.hidden_dim}, num_layers={self.num_layers}, dropout={self.dropout_param}"
 
-
-class Stage2(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_layers, dropout_param=0.1):
-        super(Stage2, self).__init__()
-        layers = []
-        for i in range(num_layers):
-            current_input_dim = input_dim if i == 0 else hidden_dim
-            layers.append(AGTBlock(current_input_dim, hidden_dim, dropout_param))
-        self.layers = nn.ModuleList(layers)
-
-    def forward(self, x, edge_index, pos):
-        attention_weights_all = []
-        for layer in self.layers:
-            x, attention_weights = layer(x, edge_index, pos)
-            attention_weights_all.append(attention_weights)
-        return x, attention_weights_all
 
 
 class InterpolationStage(nn.Module):
@@ -288,99 +200,6 @@ class InterpolationStage(nn.Module):
         if decoder_features.size(0) != decoder_pos.size(0):
             raise ValueError("Decoder features and positions count mismatch")
 
-
-class InterpolationStage2(nn.Module):
-    def __init__(self, decoder_dim, encoder_dim, out_dim, knn_param, dropout_param=0.1):
-        super(InterpolationStage2, self).__init__()
-        self.knn_param = knn_param
-        self.decoder_dim = decoder_dim
-        self.encoder_dim = encoder_dim
-        self.out_dim = out_dim
-        self.dropout = nn.Dropout(p=dropout_param)
-        self.norm = nn.LayerNorm(out_dim)
-
-        self.query_layer = nn.Linear(encoder_dim, decoder_dim)
-        self.key_layer = nn.Linear(decoder_dim, decoder_dim)
-        self.value_layer = nn.Linear(decoder_dim, decoder_dim)
-
-        self.combination_mlp = nn.Sequential(
-            nn.Linear(decoder_dim + encoder_dim, out_dim),
-            nn.ReLU(),
-            nn.Linear(out_dim, out_dim)
-        )
-
-    def forward(self, decoder_features, decoder_pos, encoder_features, encoder_pos, encoder_labels=None):
-        knn_indices = knn(x=decoder_pos, y=encoder_pos, k=self.knn_param)
-        N_e = encoder_pos.size(0)
-        neighbor_indices = knn_indices[1].view(N_e, self.knn_param)
-
-        neighbor_decoder_features = decoder_features[neighbor_indices]
-        query = self.query_layer(encoder_features).unsqueeze(1)
-        keys = self.key_layer(neighbor_decoder_features)
-        values = self.value_layer(neighbor_decoder_features)
-
-        scores = torch.matmul(query, keys.transpose(1, 2))
-        scale = math.sqrt(self.decoder_dim) + 1e-9
-        scores = scores / scale
-        weights = F.softmax(scores, dim=-1)
-
-        aggregated_decoder_features = torch.matmul(weights, values).squeeze(1)
-        combined_input = torch.cat([aggregated_decoder_features, encoder_features], dim=-1)
-        upsampled_features = self.combination_mlp(combined_input)
-        upsampled_features = self.norm(upsampled_features)
-        upsampled_features = self.dropout(upsampled_features)
-        return upsampled_features, encoder_pos, encoder_labels
-
-
-class InterpolationStage1(nn.Module):
-    def __init__(self, decoder_dim, encoder_dim, output_dim, knn_param=1, dropout_param=0.1):
-        super(InterpolationStage1, self).__init__()
-        self.knn_param = knn_param
-        self.combination_mlp = nn.Sequential(
-            nn.Linear(decoder_dim + encoder_dim, output_dim),
-            nn.ReLU(),
-            nn.Dropout(p=dropout_param),
-            nn.Linear(output_dim, output_dim)
-        )
-        self.norm = nn.LayerNorm(output_dim)
-        self.dropout = nn.Dropout(p=dropout_param)
-
-    def forward(self, decoder_features, decoder_pos, skip_features, skip_pos, skip_labels=None):
-        knn_indices = knn(x=decoder_pos, y=skip_pos, k=self.knn_param)
-        M = skip_pos.size(0)
-        knn_indices = knn_indices.view(2, M, self.knn_param)
-        knn_decoder_features = decoder_features[knn_indices[1]]
-        knn_decoder_features = knn_decoder_features.mean(dim=1)
-        combined_input = torch.cat([skip_features, knn_decoder_features], dim=-1)
-        combined_features = self.combination_mlp(combined_input)
-        combined_features = self.norm(combined_features)
-        combined_features = self.dropout(combined_features)
-        return combined_features, skip_pos, skip_labels
-
-
-class InterpolationStage0(nn.Module):
-    def __init__(self, input_dim, output_dim, knn_param, scale_factor, noise_factor=0.1):
-        super(InterpolationStage0, self).__init__()
-        self.knn_param = knn_param
-        self.scale_factor = scale_factor
-        self.noise_factor = noise_factor
-        self.reduce_dim = nn.Linear(input_dim, output_dim)
-        self.norm_reduce = nn.LayerNorm(output_dim)
-
-    def forward(self, x, pos, labels):
-        N, C = x.shape
-        scaled_N = int(N * self.scale_factor)
-        indices = torch.randint(0, N, (scaled_N,), device=x.device)
-        new_pos = pos[indices]
-        pos_std = pos.std(dim=0, keepdim=True)
-        noise_scale = self.noise_factor * pos_std
-        new_pos = new_pos + noise_scale * torch.randn_like(new_pos)
-
-        knn_indices = knn(x=pos, y=new_pos, k=self.knn_param)
-        new_x = x[knn_indices[1]].view(scaled_N, -1, x.shape[1]).mean(dim=1)
-        new_labels = labels[knn_indices[1]].view(scaled_N, -1).mode(dim=1).values
-        new_x = self.norm_reduce(self.reduce_dim(new_x))
-        return new_x, new_pos, new_labels
 
 
 class Encoder(nn.Module):
@@ -470,6 +289,7 @@ class Encoder(nn.Module):
             raise ValueError("Labels must be 1D tensor")
         if x.size(0) != pos.size(0) or x.size(0) != labels.size(0):
             raise ValueError("Inputs must have same number of points")
+
 
 
 class Decoder(nn.Module):

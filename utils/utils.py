@@ -2,13 +2,14 @@ import os
 import torch
 from datetime import datetime
 
-def save_checkpoint(model, optimizer, epoch, train_losses, val_losses, base_path="./saved_models/asgformer"):
+def save_checkpoint(model, optimizer, epoch, train_losses, val_losses, base_dir, filename_prefix="agtransformer"):
     """
     ذخیره‌ی checkpoint مدل همراه با مدیریت نسخه.
     """
-    os.makedirs(os.path.dirname(base_path), exist_ok=True)
+    os.makedirs(os.path.dirname(base_dir), exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    checkpoint_path = f"{base_path}_epoch{epoch}_{timestamp}.pth"
+    checkpoint_path = f"{base_dir}_epoch{epoch}_{timestamp}.pth"
+    checkpoint_path = os.path.join(base_dir, f"{filename_prefix}_epoch{epoch}_{timestamp}.pth")
 
     checkpoint = {
         'epoch': epoch,
@@ -23,7 +24,7 @@ def save_checkpoint(model, optimizer, epoch, train_losses, val_losses, base_path
     except Exception as e:
         print(f"خطا در ذخیره checkpoint: {e}")
 
-def load_checkpoint(model, optimizer=None, for_training=False, checkpoint_path=""):
+def load_checkpoint(model, checkpoint_path, optimizer=None, for_training=False):
     """
     بارگذاری checkpoint مدل با مدیریت خطا.
     """
@@ -48,24 +49,24 @@ def load_checkpoint(model, optimizer=None, for_training=False, checkpoint_path="
         print(f"خطا در بارگذاری checkpoint: {e}")
         return model, optimizer, 0, [], []
 
-def find_latest_checkpoint(directory):
+def find_latest_checkpoint(directory, prefix="agtransformer_"):
     """
     پیدا کردن آخرین checkpoint در دایرکتوری مشخص شده.
     """
     if not os.path.isdir(directory):
         return None
-    checkpoint_files = [f for f in os.listdir(directory) if f.endswith('.pth')]
+    checkpoint_files = [f for f in os.listdir(directory) if f.startswith(prefix) and f.endswith('.pth')]
     if not checkpoint_files:
         return None
     latest_file = max(checkpoint_files)
     return os.path.join(directory, latest_file)
 
-def load_checkpoint_dynamic(model, optimizer=None, for_training=False, directory="./saved_models"):
+def load_checkpoint_dynamic(model, directory, optimizer=None, for_training=False):
     checkpoint_path = find_latest_checkpoint(directory)
     if checkpoint_path is None:
         print("هیچ checkpointی در دایرکتوری یافت نشد. آموزش از ابتدا آغاز می‌شود.")
         return model, optimizer, 0, [], []
-    return load_checkpoint(model, optimizer, for_training, checkpoint_path)
+    return load_checkpoint(model, checkpoint_path, optimizer, for_training, )
 
 def check_tensor(tensor, name="tensor"):
     if torch.isnan(tensor).any():
