@@ -363,6 +363,7 @@ class Decoder(nn.Module):
                 raise ValueError(f"Inputs at stage {i} have mismatched sizes")
 
 
+
 class ASGFormer(nn.Module):
     def __init__(self, feature_dim, main_input_dim, main_output_dim, stages_config, knn_param, dropout_param=0.1):
         super(ASGFormer, self).__init__()
