@@ -29,9 +29,6 @@ class PointCloudProcessor:
 
         feats_scaled = np.hstack([rgb_scaled, others_scaled])
 
-        pts_tensor = torch.tensor(coords_scaled, dtype=torch.float32)
-        feats_tensor = torch.tensor(feats_scaled, dtype=torch.float32)
-
         return coords_scaled, feats_scaled
 
 
@@ -72,9 +69,19 @@ class H5Dataset(Dataset):
         points = data_full[:, :3]
         features = data_full[:, 3:]
         points, features = self.processor.normalize_data(points, features)
+        
+        if isinstance(points, torch.Tensor):
+            points_tensor = points.clone().detach()
+        else:
+            points_tensor = torch.tensor(points, dtype=torch.float32)
 
-        points_tensor = torch.tensor(points, dtype=torch.float32)
-        features_tensor = torch.tensor(features, dtype=torch.float32)
+        if isinstance(features, torch.Tensor):
+            features_tensor = features.clone().detach()
+        else:
+            features_tensor = torch.tensor(features, dtype=torch.float32)
+
+        #points_tensor = torch.tensor(points, dtype=torch.float32)
+        #features_tensor = torch.tensor(features, dtype=torch.float32)
         labels_tensor = torch.tensor(labels, dtype=torch.long)
 
         data_obj = Data(x=features_tensor, pos=points_tensor, y=labels_tensor)
