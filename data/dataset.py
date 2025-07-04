@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import os
 import h5py
 
@@ -10,17 +10,32 @@ class PointCloudProcessor:
     def __init__(self, num_points, knn_param, use_cache=True):
         self.num_points = num_points
         self.knn_param = knn_param
-        self.scaler = StandardScaler()
+        #self.scaler = StandardScaler()
+        self.scaler_points = StandardScaler()
+        self.scaler_rgb = MinMaxScaler(feature_range=(0, 1))
+        self.scaler_feats = StandardScaler()
         self.cache = {} if use_cache else None
 
     def normalize_data(self, points, features):
         coords = points.copy()
-        coords = coords.astype(np.float64)
-        self.scaler.partial_fit(coords)
-        coords = self.scaler.transform(coords)
-        return coords, features
+        coords = points.astype(np.float64)
+        coords_scaled = self.scaler_points.fit_transform(coords)
 
-    # متدهای sample_points و create_graph می‌توانند بر حسب نیاز اضافه شوند.
+        rgb = features[:, :3].astype(np.float64)
+        others = features[:, 3:].astype(np.float64)
+
+        rgb_scaled = self.scaler_rgb.fit_transform(rgb)
+        others_scaled = self.scaler_feats.fit_transform(others)
+
+        feats_scaled = np.hstack([rgb_scaled, others_scaled])
+
+        pts_tensor = torch.tensor(coords_scaled, dtype=torch.float32)
+        feats_tensor = torch.tensor(feats_scaled, dtype=torch.float32)
+        print("pts_tensor=>",pts_tensor)
+        print("feats_tensor=>",feats_tensor)
+        return pts_tensor, feats_tensor
+
+
 
 
 class H5Dataset(Dataset):
