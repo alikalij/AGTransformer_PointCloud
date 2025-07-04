@@ -32,7 +32,7 @@ class PointCloudProcessor:
         pts_tensor = torch.tensor(coords_scaled, dtype=torch.float32)
         feats_tensor = torch.tensor(feats_scaled, dtype=torch.float32)
 
-        return pts_tensor, feats_tensor
+        return coords_scaled, feats_scaled
 
 
 
