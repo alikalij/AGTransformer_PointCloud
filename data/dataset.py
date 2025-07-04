@@ -17,8 +17,7 @@ class PointCloudProcessor:
         self.cache = {} if use_cache else None
 
     def normalize_data(self, points, features):
-        coords = points.copy()
-        coords = points.astype(np.float64)
+        coords = points.copy().astype(np.float64)
         coords_scaled = self.scaler_points.fit_transform(coords)
 
         rgb = features[:, :3].astype(np.float64)
@@ -28,7 +27,6 @@ class PointCloudProcessor:
         others_scaled = self.scaler_feats.fit_transform(others)
 
         feats_scaled = np.hstack([rgb_scaled, others_scaled])
-
         return coords_scaled, feats_scaled
 
 
@@ -70,15 +68,8 @@ class H5Dataset(Dataset):
         features = data_full[:, 3:]
         points, features = self.processor.normalize_data(points, features)
         
-        if isinstance(points, torch.Tensor):
-            points_tensor = points.clone().detach()
-        else:
-            points_tensor = torch.tensor(points, dtype=torch.float32)
-
-        if isinstance(features, torch.Tensor):
-            features_tensor = features.clone().detach()
-        else:
-            features_tensor = torch.tensor(features, dtype=torch.float32)
+        points_tensor = points.clone().detach() if torch.is_tensor(points) else torch.tensor(points, dtype=torch.float32)
+        features_tensor = features.clone().detach() if torch.is_tensor(features) else torch.tensor(features, dtype=torch.float32)
 
         #points_tensor = torch.tensor(points, dtype=torch.float32)
         #features_tensor = torch.tensor(features, dtype=torch.float32)
