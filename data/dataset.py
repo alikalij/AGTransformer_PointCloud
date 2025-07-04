@@ -70,11 +70,10 @@ class H5Dataset(Dataset):
         
         points_tensor = points.clone().detach() if torch.is_tensor(points) else torch.tensor(points, dtype=torch.float32)
         features_tensor = features.clone().detach() if torch.is_tensor(features) else torch.tensor(features, dtype=torch.float32)
-
+        labels_tensor = torch.tensor(labels, dtype=torch.long)
         #points_tensor = torch.tensor(points, dtype=torch.float32)
         #features_tensor = torch.tensor(features, dtype=torch.float32)
-        labels_tensor = torch.tensor(labels, dtype=torch.long)
-
+        
         data_obj = Data(x=features_tensor, pos=points_tensor, y=labels_tensor)
 
         if self.cache is not None:
